@@ -5,10 +5,11 @@ namespace App\Http\Livewire;
 use App\Models\Contact;
 use Livewire\Component;
 use Livewire\WithPagination;
+use WireUi\Traits\WireUiActions;
 
 class ContactsManager extends Component
 {
-    use WithPagination;
+    use WithPagination, WireUiActions;
 
     protected $paginationTheme = 'tailwind';
 
@@ -50,5 +51,7 @@ class ContactsManager extends Component
         $contact->delete();
         // Reset to first page to avoid empty-page state after deletion.
         $this->resetPage();
+        // Dispatch a global app alert (Livewire v3 style)
+        $this->dispatch('app:alert', title: 'Deleted', description: 'Contact deleted successfully.', color: 'positive');
     }
 }

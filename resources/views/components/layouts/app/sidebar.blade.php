@@ -128,7 +128,96 @@
 
         {{ $slot }}
 
-            <wireui:scripts />
+        {{-- Global WireUI notifications container (toasts) --}}
+        <x-notifications />
+        
+        {{-- Global alert listener: listens for `app:alert` browser events and renders
+        a WireUI-styled alert using Tailwind classes so it works client-side
+        (can be triggered from Livewire via dispatchBrowserEvent). --}}
+        <div x-data="globalAlert()" x-init="init()">
+            <template x-if="open">
+                <div class="fixed inset-0 flex items-start justify-center px-4 pt-6 pointer-events-none sm:p-5 sm:pt-4">
+                    <div x-show="open" x-transition.opacity class="pointer-events-auto w-full max-w-lg">
+                        <div :class="containerClasses" class="rounded-md shadow-lg border p-4">
+                            <div class="flex items-start">
+                                <div :class="iconClasses + ' shrink-0 mr-3'" x-html="iconHtml"></div>
+                                <div class="flex-1">
+                                    <div class="font-semibold" x-text="title"></div>
+                                    <div class="mt-1 text-sm" x-text="description"></div>
+                                </div>
+                                <div class="ml-4 shrink-0">
+                                    <button class="text-sm font-medium focus:outline-none" @click="close()">Close</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </template>
+        </div>
+
+        <wireui:scripts />
+<script>
+    function globalAlert() {
+        return {
+            open: false,
+            title: null,
+            description: null,
+            color: 'primary',
+            timeout: 3000,
+            timer: null,
+            init() {
+                window.addEventListener('app:alert', (e) => this.show(e.detail || {}));
+            },
+            show(payload) {
+                this.title = payload.title || '';
+                this.description = payload.description || '';
+                this.color = payload.color || 'primary';
+                this.open = true;
+                clearTimeout(this.timer);
+                this.timer = setTimeout(() => this.close(), this.timeout);
+            },
+            close() {
+                this.open = false;
+                clearTimeout(this.timer);
+            },
+            get containerClasses() {
+                // map logical colors to Tailwind classes for light/dark
+                const map = {
+                    primary: 'bg-white border-gray-200 text-gray-900 dark:bg-secondary-800 dark:border-secondary-700 dark:text-secondary-100',
+                    secondary: 'bg-gray-50 border-gray-200 text-gray-900 dark:bg-secondary-800 dark:border-secondary-700 dark:text-secondary-100',
+                    positive: 'bg-green-50 border-green-200 text-green-900 dark:bg-green-900/30 dark:border-green-700 dark:text-green-100',
+                    negative: 'bg-red-50 border-red-200 text-red-900 dark:bg-red-900/30 dark:border-red-700 dark:text-red-100',
+                    warning: 'bg-yellow-50 border-yellow-200 text-yellow-900 dark:bg-yellow-900/25 dark:border-yellow-700 dark:text-yellow-100',
+                    info: 'bg-sky-50 border-sky-200 text-sky-900 dark:bg-sky-900/25 dark:border-sky-700 dark:text-sky-100'
+                };
+                return map[this.color] || map.primary;
+            },
+            get iconClasses() {
+                const map = {
+                    primary: 'text-gray-500 dark:text-secondary-300',
+                    secondary: 'text-gray-500 dark:text-secondary-300',
+                    positive: 'text-green-500 dark:text-green-300',
+                    negative: 'text-red-500 dark:text-red-300',
+                    warning: 'text-yellow-500 dark:text-yellow-300',
+                    info: 'text-sky-500 dark:text-sky-300'
+                };
+                return map[this.color] || map.primary;
+            },
+            get iconHtml() {
+                // simple SVG icons per type (kept minimal)
+                const icons = {
+                    positive: '<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>',
+                    negative: '<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>',
+                    warning: '<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a1 1 0 00.86 1.5h18.64a1 1 0 00.86-1.5L13.71 3.86a1 1 0 00-1.71 0z"/></svg>',
+                    info: '<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M12 12a9 9 0 110-18 9 9 0 010 18z"/></svg>',
+                    primary: '<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01"/></svg>',
+                    secondary: '<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01"/></svg>'
+                };
+                return icons[this.color] || icons.primary;
+            }
+        }
+    }
+</script>
         @fluxScripts
     </body>
 </html>
