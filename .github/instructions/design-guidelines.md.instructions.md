@@ -11,6 +11,6 @@ applyTo: '**'
 # Blade Icons
 
 - This project uses [Blade Icons](https://blade-ui-kit.com/blade-icons) for icons.
-- When adding new icons, ensure they are added to the appropriate Blade Icons package used in the project.
+- When adding new icons, ensure appropriate icons from either Blade Icons package or wire ui are used in the project.
 - Follow the existing conventions for naming and using icons in Blade templates.
-- Always use svg icons for better scalability and performance.
+- Always use svg icons if available for better scalability and performance.
