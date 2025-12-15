@@ -15,12 +15,31 @@ class ContactsManager extends Component
 
     public int $perPage = 10;
     public ?string $search = null;
+    public array $selectedGenders = [];
 
-    protected $queryString = ['search'];
+    protected $queryString = [
+        'search' => ['except' => ''],
+        'perPage' => ['except' => 10],
+        'selectedGenders' => ['except' => []],
+    ];
 
     protected $listeners = ['contact-created' => '$refresh'];
 
+    public bool $viewModalOpen = false;
+    public ?Contact $viewingContact = null;
+
+    public function openViewModal(int $id): void
+    {
+        $this->viewingContact = Contact::with('fields')->find($id);
+        $this->viewModalOpen = true;
+    }
+
     public function updatingSearch()
+    {
+        $this->resetPage();
+    }
+
+    public function updatingSelectedGenders()
     {
         $this->resetPage();
     }
@@ -43,6 +62,9 @@ class ContactsManager extends Component
                              ->where('is_searchable', true);
                       });
                 });
+            })
+            ->when(!empty($this->selectedGenders), function ($query) {
+                $query->whereIn('gender', $this->selectedGenders);
             })
             ->orderBy('created_at', 'desc');
 

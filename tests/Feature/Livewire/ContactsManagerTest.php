@@ -69,4 +69,16 @@ class ContactsManagerTest extends TestCase
             ->set('search', 'HiddenValue')
             ->assertDontSee('Alice');
     }
+
+    /** @test */
+    public function test_can_view_contact_details()
+    {
+        $contact = Contact::factory()->create();
+        
+        Livewire::test(ContactsManager::class)
+            ->call('openViewModal', $contact->id)
+            ->assertSet('viewModalOpen', true)
+            ->assertSet('viewingContact.id', $contact->id)
+            ->assertSet('viewingContact.name', $contact->name);
+    }
 }

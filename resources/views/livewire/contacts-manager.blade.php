@@ -1,8 +1,24 @@
 <div class="space-y-4">
+    @php
+        use App\Enums\GenderOptions;
+    @endphp
     <div class="flex items-center justify-between gap-4">
         <div class="flex items-center gap-3 w-full max-w-md">
             <x-input icon="magnifying-glass" placeholder="Search in name, email, phone, custom fields" wire:model.live.debounce.400ms="search" class="w-full" />
         </div>
+
+        
+        <div class="flex items-center gap-4">
+            @foreach(GenderOptions::cases() as $gender)
+                <x-checkbox 
+                    id="gender-{{ $gender->value }}"
+                    label="{{ $gender->label() }}" 
+                    value="{{ $gender->value }}"
+                    wire:model.live="selectedGenders" 
+                />
+            @endforeach
+        </div>
+
         <div class="flex items-center gap-2">
             <x-native-select
                 label="Per page"
@@ -44,7 +60,7 @@
                                     {{ $contact->phone }}
                                 </td>
                                 <td class="whitespace-nowrap px-4 py-3 text-sm text-neutral-600 dark:text-neutral-300">
-                                    {{ $contact->gender instanceof \App\Enums\GenderOptions ? $contact->gender->label() : '' }}
+                                    {{ $contact->gender instanceof GenderOptions ? $contact->gender->label() : '' }}
                                 </td>
 
                                 <td class="whitespace-normal px-4 py-3 text-sm text-neutral-600 dark:text-neutral-300">
@@ -57,6 +73,9 @@
                                 </td>
 
                                 <td class="whitespace-nowrap px-4 py-3 text-sm text-right">
+                                    <x-mini-button rounded info icon="eye"
+                                        wire:click="openViewModal({{ $contact->id }})"
+                                    />
                                     <x-mini-button rounded primary icon="pencil"
                                         wire:click="$dispatch('edit-contact', { id: {{ $contact->id }} })"
                                     />
@@ -86,4 +105,76 @@
             {{ $contacts->links() }}
         </div>
     </div>
+
+    {{-- View Contact Modal --}}
+    <x-modal-card title="Contact Details" wire:model="viewModalOpen">
+        @if($viewingContact)
+            <div class="space-y-4">
+                {{-- Profile Image --}}
+                @if($viewingContact->profile_image)
+                    <div class="flex justify-center">
+                        <img src="{{ Storage::url($viewingContact->profile_image) }}" alt="Profile Image" class="h-32 w-32 rounded-full object-cover border border-gray-200">
+                    </div>
+                @endif
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {{-- Standard Fields --}}
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-400">Name</label>
+                        <div class="mt-1 text-sm text-gray-900 dark:text-gray-100">{{ $viewingContact->name }}</div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-400">Email</label>
+                        <div class="mt-1 text-sm text-gray-900 dark:text-gray-100">{{ $viewingContact->email }}</div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-400">Phone</label>
+                        <div class="mt-1 text-sm text-gray-900 dark:text-gray-100">{{ $viewingContact->phone }}</div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-400">Gender</label>
+                        <div class="mt-1 text-sm text-gray-900 dark:text-gray-100">
+                            {{ $viewingContact->gender instanceof GenderOptions ? $viewingContact->gender->label() : '' }}
+                        </div>
+                    </div>
+
+                    {{-- Additional File --}}
+                    @if($viewingContact->additional_file)
+                        <div class="col-span-1 md:col-span-2">
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-400">Additional File</label>
+                            <div class="mt-1 text-sm">
+                                <a href="{{ Storage::url($viewingContact->additional_file) }}" target="_blank" class="text-blue-600 hover:text-blue-500 underline">
+                                    View File
+                                </a>
+                            </div>
+                        </div>
+                    @endif
+                </div>
+
+                {{-- Custom Fields --}}
+                @if($viewingContact->fields->isNotEmpty())
+                    <div class="border-t border-gray-200 dark:border-gray-700 pt-4">
+                        <h4 class="text-md font-medium text-gray-900 dark:text-gray-100 mb-2">Custom Fields</h4>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            @foreach($viewingContact->fields as $field)
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-400">{{ $field->field_name }}</label>
+                                    <div class="mt-1 text-sm text-gray-900 dark:text-gray-100">{{ $field->field_value }}</div>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                @endif
+            </div>
+        @endif
+    
+        <x-slot name="footer">
+            <div class="flex justify-end gap-x-4">
+                <x-button flat label="Close" x-on:click="close" />
+            </div>
+        </x-slot>
+    </x-modal-card>
 </div>
