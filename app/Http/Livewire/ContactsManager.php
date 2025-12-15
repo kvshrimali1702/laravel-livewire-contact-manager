@@ -18,6 +18,8 @@ class ContactsManager extends Component
 
     protected $queryString = ['search'];
 
+    protected $listeners = ['contact-created' => '$refresh'];
+
     public function updatingSearch()
     {
         $this->resetPage();
@@ -26,17 +28,7 @@ class ContactsManager extends Component
     public function render()
     {
         $query = Contact::with('fields')
-            ->when($this->search, function ($q) {
-                $q->where(function ($q2) {
-                    $q2->where('name', 'like', "%{$this->search}%")
-                       ->orWhere('email', 'like', "%{$this->search}%")
-                       ->orWhere('phone', 'like', "%{$this->search}%")
-                       ->orWhereHas('fields', function ($q3) {
-                           $q3->where('is_searchable', true)
-                              ->where('field_value', 'like', "%{$this->search}%");
-                       });
-                });
-            })
+            ->when($this->search, fn($q) => $q->where(fn($q2) => $q2->where('name', 'like', "%{$this->search}%")->orWhere('email', 'like', "%{$this->search}%")))
             ->orderBy('created_at', 'desc');
 
         $contacts = $query->paginate($this->perPage);
