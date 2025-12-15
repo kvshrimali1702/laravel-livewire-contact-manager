@@ -28,7 +28,18 @@ class ContactsManager extends Component
     public function render()
     {
         $query = Contact::with('fields')
-            ->when($this->search, fn($q) => $q->where(fn($q2) => $q2->where('name', 'like', "%{$this->search}%")->orWhere('email', 'like', "%{$this->search}%")))
+            ->when($this->search, function ($query) {
+                $term = "%{$this->search}%";
+                $query->where(function ($q) use ($term) {
+                    $q->where('name', 'like', $term)
+                      ->orWhere('email', 'like', $term)
+                      ->orWhere('phone', 'like', $term)
+                      ->orWhereHas('fields', function ($q2) use ($term) {
+                          $q2->where('field_value', 'like', $term)
+                             ->where('is_searchable', true);
+                      });
+                });
+            })
             ->orderBy('created_at', 'desc');
 
         $contacts = $query->paginate($this->perPage);
