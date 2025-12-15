@@ -25,3 +25,5 @@ applyTo: '**'
 - Follow the existing component structure and naming conventions used in the project.
 - Ensure proper communication between Livewire components using events and properties.
 - Write clean, maintainable, and well-documented code for Livewire components and AlpineJS scripts.
+- Livewire, Laravel, Blade, Flux comes with some of the ui components. Before creating any new component, check if similar component already exists.
+- Use WireUI components wherever possible. Check existing components before creating new ones.
