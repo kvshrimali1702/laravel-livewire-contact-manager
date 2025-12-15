@@ -34,4 +34,21 @@ class ContactsManager extends Component
             'contacts' => $contacts,
         ]);
     }
+
+    /**
+     * Delete a contact by id.
+     */
+    public function deleteContact(int $id): void
+    {
+        $contact = Contact::find($id);
+
+        if (!$contact) {
+            // contact not found; simply return silently
+            return;
+        }
+
+        $contact->delete();
+        // Reset to first page to avoid empty-page state after deletion.
+        $this->resetPage();
+    }
 }
