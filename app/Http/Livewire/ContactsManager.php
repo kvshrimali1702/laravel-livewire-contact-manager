@@ -35,7 +35,11 @@ class ContactsManager extends Component
                       ->orWhere('email', 'like', $term)
                       ->orWhere('phone', 'like', $term)
                       ->orWhereHas('fields', function ($q2) use ($term) {
-                          $q2->where('field_value', 'like', $term)
+                          $q2->where(function ($q3) use ($term) {
+                            $q3
+                            ->where('field_value', 'like', $term)
+                               ->orWhere('field_name', 'like', $term);
+                          })
                              ->where('is_searchable', true);
                       });
                 });
@@ -46,6 +50,20 @@ class ContactsManager extends Component
 
         return view('livewire.contacts-manager', [
             'contacts' => $contacts,
+        ]);
+    }
+
+    /**
+     * Confirm delete contact.
+     */
+    public function confirmDelete(int $id): void
+    {
+        $this->dialog()->confirm([
+            'title'       => 'Are you sure?',
+            'description' => 'Do you really want to delete this contact? This action cannot be undone.',
+            'acceptLabel' => 'Yes, delete it',
+            'method'      => 'deleteContact',
+            'params'      => $id,
         ]);
     }
 

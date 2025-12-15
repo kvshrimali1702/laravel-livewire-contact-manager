@@ -22,7 +22,7 @@ return new class extends Migration {
             $table->timestamps();
 
             // composite index: is_searchable first, then field_value
-            $table->index(['is_searchable', 'field_value']);
+            $table->index(['is_searchable', 'field_name', 'field_value']);
         });
 
     }

@@ -23,6 +23,8 @@ return new class extends Migration {
             $table->text('profile_image')->nullable();
             $table->text('additional_file')->nullable();
             $table->timestamps();
+
+            $table->index(['name', 'email', 'phone']);
         });
 
         // Phone validation will be handled at the application layer (Laravel validation).

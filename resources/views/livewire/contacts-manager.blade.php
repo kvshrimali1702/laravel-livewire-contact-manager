@@ -1,7 +1,7 @@
 <div class="space-y-4">
     <div class="flex items-center justify-between gap-4">
         <div class="flex items-center gap-3 w-full max-w-md">
-            <x-input icon="magnifying-glass" placeholder="Search name or email" wire:model.live.debounce.400ms="search" class="w-full" />
+            <x-input icon="magnifying-glass" placeholder="Search in name, email, phone, custom fields" wire:model.live.debounce.400ms="search" class="w-full" />
         </div>
         <div class="flex items-center gap-2">
             <x-native-select
@@ -57,9 +57,11 @@
                                 </td>
 
                                 <td class="whitespace-nowrap px-4 py-3 text-sm text-right">
+                                    <x-mini-button rounded primary icon="pencil"
+                                        wire:click="$dispatch('edit-contact', { id: {{ $contact->id }} })"
+                                    />
                                     <x-mini-button rounded negative icon="trash"
-                                        wire:click="deleteContact({{ $contact->id }})"
-                                        wire:confirm="Are you sure you want to delete this contact?"
+                                        wire:click="confirmDelete({{ $contact->id }})"
                                     />
                                 </td>
                             </tr>
@@ -80,6 +82,7 @@
         </div>
 
         <div>
+    <livewire:edit-contact />
             {{ $contacts->links() }}
         </div>
     </div>
