@@ -128,6 +128,7 @@
 
         {{ $slot }}
 
+            <wireui:scripts />
         @fluxScripts
     </body>
 </html>
