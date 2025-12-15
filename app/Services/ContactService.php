@@ -38,7 +38,7 @@ class ContactService
                         $contact->fields()->create([
                             'field_name' => $field['key'],
                             'field_value' => $field['value'],
-                            'is_searchable' => true, // Default to searchable as per requirements implies usefulness
+                            'is_searchable' => isset($field['is_searchable']) ? (bool) $field['is_searchable'] : false,
                         ]);
                     }
                 }
@@ -92,6 +92,7 @@ class ContactService
                                 $customField->update([
                                     'field_name' => $field['key'],
                                     'field_value' => $field['value'],
+                                    'is_searchable' => isset($field['is_searchable']) ? (bool) $field['is_searchable'] : false,
                                 ]);
                                 $processedIds[] = $field['id'];
                             }
@@ -100,7 +101,7 @@ class ContactService
                             $newField = $contact->fields()->create([
                                 'field_name' => $field['key'],
                                 'field_value' => $field['value'],
-                                'is_searchable' => true,
+                                'is_searchable' => isset($field['is_searchable']) ? (bool) $field['is_searchable'] : false,
                             ]);
                             $processedIds[] = $newField->id;
                         }

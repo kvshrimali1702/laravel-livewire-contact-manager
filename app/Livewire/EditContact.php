@@ -46,6 +46,7 @@ class EditContact extends Component
             'newAdditionalFile' => 'nullable|file|max:2048',
             'customFields.*.key' => 'required|string',
             'customFields.*.value' => 'required|string',
+            'customFields.*.is_searchable' => 'boolean',
         ];
     }
 
@@ -82,6 +83,7 @@ class EditContact extends Component
                 'id' => $field->id,
                 'key' => $field->field_name,
                 'value' => $field->field_value,
+                'is_searchable' => (bool) $field->is_searchable,
             ];
         })->toArray();
 
@@ -90,7 +92,7 @@ class EditContact extends Component
 
     public function addCustomField()
     {
-        $this->customFields[] = ['id' => null, 'key' => '', 'value' => ''];
+        $this->customFields[] = ['id' => null, 'key' => '', 'value' => '', 'is_searchable' => false];
     }
 
     public function removeCustomField($index)

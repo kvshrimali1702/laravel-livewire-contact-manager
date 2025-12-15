@@ -44,6 +44,9 @@
                             </div>
                             <div class="w-1/2">
                                 <x-input placeholder="Value" wire:model="customFields.{{ $index }}.value" />
+                                <div class="mt-1">
+                                    <x-checkbox label="Searchable" wire:model="customFields.{{ $index }}.is_searchable" />
+                                </div>
                             </div>
                             <x-mini-button rounded icon="trash" negative wire:click="removeCustomField({{ $index }})" />
                         </div>

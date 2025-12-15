@@ -160,10 +160,15 @@
                         <h4 class="text-md font-medium text-gray-900 dark:text-gray-100 mb-2">Custom Fields</h4>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             @foreach($viewingContact->fields as $field)
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-400">{{ $field->field_name }}</label>
-                                    <div class="mt-1 text-sm text-gray-900 dark:text-gray-100">{{ $field->field_value }}</div>
-                                </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-400">{{ $field->field_name }}</label>
+                                        <div class="mt-1 text-sm text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                                            {{ $field->field_value }}
+                                            @if($field->is_searchable)
+                                                <x-badge sm outline positive label="Searchable" />
+                                            @endif
+                                        </div>
+                                    </div>
                             @endforeach
                         </div>
                     </div>

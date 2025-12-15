@@ -35,6 +35,7 @@ class CreateContact extends Component
             'additional_file' => 'nullable|file|max:2048', // 2MB Max
             'customFields.*.key' => 'required|string',
             'customFields.*.value' => 'required|string',
+            'customFields.*.is_searchable' => 'boolean',
         ];
     }
 
@@ -52,7 +53,7 @@ class CreateContact extends Component
 
     public function addCustomField()
     {
-        $this->customFields[] = ['key' => '', 'value' => ''];
+        $this->customFields[] = ['key' => '', 'value' => '', 'is_searchable' => false];
     }
 
     public function removeCustomField($index)
