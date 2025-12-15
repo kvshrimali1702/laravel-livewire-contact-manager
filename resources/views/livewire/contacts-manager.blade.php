@@ -1,0 +1,86 @@
+<div class="space-y-4">
+    <div class="flex items-center justify-between gap-4">
+        <div class="flex items-center gap-3">
+            <label class="relative block">
+                <span class="sr-only">Search</span>
+                <input wire:model.debounce.400ms="search"
+                    class="block w-full rounded-md border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-900 placeholder:text-neutral-400 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100"
+                    placeholder="Search name or email">
+            </label>
+        </div>
+        <div class="flex items-center gap-2">
+            <label class="flex items-center gap-2 text-sm text-neutral-700 dark:text-neutral-300">Per page
+                <select wire:model="perPage"
+                    class="ml-2 rounded-md border border-neutral-200 bg-white px-2 py-1 text-sm dark:border-neutral-700 dark:bg-neutral-900">
+                    <option value="5">5</option>
+                    <option value="10">10</option>
+                    <option value="25">25</option>
+                    <option value="50">50</option>
+                </select>
+            </label>
+        </div>
+    </div>
+
+    <div class="overflow-hidden rounded-xl border border-neutral-200 dark:border-neutral-700">
+        <table class="min-w-full divide-y divide-neutral-200 dark:divide-neutral-700">
+            <thead class="bg-neutral-50 dark:bg-neutral-900">
+                <tr>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-neutral-600 dark:text-neutral-300">Name</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-neutral-600 dark:text-neutral-300">Email
+                    </th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-neutral-600 dark:text-neutral-300">Phone
+                    </th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-neutral-600 dark:text-neutral-300">Gender
+                    </th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-neutral-600 dark:text-neutral-300">Custom
+                        Fields</th>
+                    <th class="px-4 py-3 text-left text-xs font-medium text-neutral-600 dark:text-neutral-300">Added
+                    </th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-neutral-100 bg-white dark:divide-neutral-800 dark:bg-neutral-950">
+                @forelse($contacts as $contact)
+                            <tr>
+                                <td class="whitespace-nowrap px-4 py-3 text-sm text-neutral-900 dark:text-neutral-100">
+                                    {{ $contact->name }}
+                                </td>
+                                <td class="whitespace-nowrap px-4 py-3 text-sm text-neutral-600 dark:text-neutral-300">
+                                    {{ $contact->email }}
+                                </td>
+                                <td class="whitespace-nowrap px-4 py-3 text-sm text-neutral-600 dark:text-neutral-300">
+                                    {{ $contact->phone }}
+                                </td>
+                                <td class="whitespace-nowrap px-4 py-3 text-sm text-neutral-600 dark:text-neutral-300">
+                                    {{ $contact->gender instanceof \App\Enums\GenderOptions ? $contact->gender->label() : '' }}
+                                </td>
+
+                                <td class="whitespace-normal px-4 py-3 text-sm text-neutral-600 dark:text-neutral-300">
+                                    {{ $contact->fields->map(function ($f) {
+                    return $f->field_name . ': ' . $f->field_value; })->implode(', ') }}
+                                </td>
+
+                                <td class="whitespace-nowrap px-4 py-3 text-sm text-neutral-500 dark:text-neutral-400">
+                                    {{ $contact->created_at->diffForHumans() }}
+                                </td>
+                            </tr>
+                @empty
+                    <tr>
+                        <td colspan="6" class="px-4 py-8 text-center text-sm text-neutral-500 dark:text-neutral-400">No
+                            contacts found.</td>
+                    </tr>
+                @endforelse
+            </tbody>
+        </table>
+    </div>
+
+    <div class="flex items-center justify-between">
+        <div class="text-sm text-neutral-600 dark:text-neutral-300">
+            Showing <strong>{{ $contacts->firstItem() ?: 0 }}</strong> to
+            <strong>{{ $contacts->lastItem() ?: 0 }}</strong> of <strong>{{ $contacts->total() }}</strong>
+        </div>
+
+        <div>
+            {{ $contacts->links() }}
+        </div>
+    </div>
+</div>
