@@ -5,7 +5,7 @@ applyTo: '**'
 # Laravel Guidelines for this project
 
 - This projects uses Laravel's 12.x version.
-- It is created using Laravel's Livewire Starter Kit which comes with Livewire Flux Components.
+- It is created using Laravel's Livewire Starter Kit.
 - Ensure you use laravel specific features wherever possible including but not limited to Form Request, Events, Resource Controllers, Resource Routes and etc.
 - Follow the existing code style and conventions used in the project.
 - Make sure to write clean, maintainable, and well-documented code.
