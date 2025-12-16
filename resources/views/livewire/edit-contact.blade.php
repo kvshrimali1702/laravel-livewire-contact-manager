@@ -1,5 +1,23 @@
 <div>
     <x-modal-card title="Edit Contact" wire:model="modalOpen">
+        @if(count($groupContacts) > 1)
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Editing contact within merged group
+                </label>
+                <select
+                    wire:model.live="activeContactId"
+                    class="mt-1 block w-full rounded-md border border-gray-300 bg-white py-2 px-3 text-sm shadow-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+                >
+                    @foreach($groupContacts as $groupContact)
+                        <option value="{{ $groupContact['id'] }}">
+                            {{ $groupContact['label'] }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+        @endif
+
         <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <x-input label="Name" placeholder="Full Name" wire:model="name" />
 
