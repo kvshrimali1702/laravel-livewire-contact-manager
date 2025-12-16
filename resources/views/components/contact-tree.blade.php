@@ -5,6 +5,9 @@
         <div class="text-sm font-semibold text-neutral-900 dark:text-neutral-100">{{ $node['name'] }}</div>
         <div class="text-sm text-neutral-700 dark:text-neutral-300">{{ $node['email'] }}</div>
         <div class="text-sm text-neutral-700 dark:text-neutral-300">{{ $node['phone'] }}</div>
+        @if(!empty($node['gender']))
+            <div class="text-sm text-neutral-700 dark:text-neutral-300">{{ $node['gender'] }}</div>
+        @endif
         @if(!empty($node['fields']))
             <div class="text-xs text-neutral-600 dark:text-neutral-400">
                 Custom: {{ collect($node['fields'])->map(fn($f) => $f['name'] . ': ' . $f['value'])->implode(', ') }}

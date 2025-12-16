@@ -60,7 +60,7 @@ class ContactDisplayService
                 'name' => $child->name,
                 'email' => $child->email,
                 'phone' => $child->phone,
-                'gender' => $child->gender,
+                'gender' => $child->gender instanceof \App\Enums\GenderOptions ? $child->gender->label() : ($child->gender ?? ''),
                 'fields' => $child->fields->map(function ($field) {
                     return [
                         'name' => $field->field_name,

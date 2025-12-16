@@ -122,7 +122,31 @@ class ContactsManager extends Component
                 });
             })
             ->when(! empty($this->selectedGenders), function ($query) {
-                $query->whereIn('gender', $this->selectedGenders);
+                $genders = $this->selectedGenders;
+
+                // Closure to check a single contact node for gender match
+                $checkGender = function ($q) use ($genders) {
+                    $q->whereIn('gender', $genders);
+                };
+
+                // Apply gender filter to the root contact, OR recursively to its descendants
+                $query->where(function ($root) use ($checkGender) {
+                    $checkGender($root);
+
+                    // Check descendants up to 3 levels deep using nested orWhereHas
+                    // Level 1
+                    $root->orWhereHas('secondaryContacts', function ($l1) use ($checkGender) {
+                        $l1->where(function ($node) use ($checkGender) { $checkGender($node); })
+                           // Level 2
+                           ->orWhereHas('secondaryContacts', function ($l2) use ($checkGender) {
+                                $l2->where(function ($node) use ($checkGender) { $checkGender($node); })
+                                   // Level 3
+                                   ->orWhereHas('secondaryContacts', function ($l3) use ($checkGender) {
+                                        $checkGender($l3);
+                                   });
+                           });
+                    });
+                });
             })
             ->orderBy('created_at', 'desc');
 
