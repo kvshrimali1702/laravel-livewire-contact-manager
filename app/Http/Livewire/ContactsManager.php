@@ -243,6 +243,38 @@ class ContactsManager extends Component
         $this->resetPage();
     }
 
+    /**
+     * Confirm unmerge contact.
+     */
+    public function confirmUnmerge(int $id): void
+    {
+        $this->dialog()->confirm([
+            'title' => 'Unmerge Contact?',
+            'description' => 'Are you sure you want to unmerge this contact? All secondary contacts will be detached and become independent.',
+            'acceptLabel' => 'Yes, unmerge',
+            'method' => 'unmergeContact',
+            'params' => $id,
+        ]);
+    }
+
+    /**
+     * Unmerge a contact by id (detach all secondary contacts).
+     */
+    public function unmergeContact(int $id): void
+    {
+        $contact = Contact::find($id);
+
+        if (! $contact) {
+            return;
+        }
+
+        // Set master_id to null for all immediate secondary contacts
+        $contact->secondaryContacts()->update(['master_id' => null]);
+
+        $this->dispatch('app:alert', title: 'Unmerged', description: 'Contacts have been unmerged successfully.', color: 'positive');
+        $this->resetPage(); // Refresh the list
+    }
+
     private function resetMergeState(): void
     {
         $this->reset(['mergeMasterId', 'mergeSecondaryId', 'mergePreview']);

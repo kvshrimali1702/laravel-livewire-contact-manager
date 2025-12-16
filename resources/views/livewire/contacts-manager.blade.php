@@ -76,6 +76,12 @@
                                     </td>
 
                                     <td class="whitespace-nowrap px-4 py-3 text-sm text-right">
+                                        @if($contact->secondaryContacts->isNotEmpty())
+                                            <x-mini-button rounded warning icon="link-slash"
+                                                wire:click="confirmUnmerge({{ $contact->id }})"
+                                                title="Unmerge Contacts"
+                                            />
+                                        @endif
                                         <x-mini-button rounded info icon="eye"
                                             wire:click="openViewModal({{ $contact->id }})"
                                         />
@@ -117,6 +123,12 @@
                         </div>
                     </div>
                     <div class="flex items-center gap-2">
+                        @if($contact->secondaryContacts->isNotEmpty())
+                            <x-mini-button rounded warning icon="link-slash"
+                                wire:click="confirmUnmerge({{ $contact->id }})"
+                                title="Unmerge Contacts"
+                            />
+                        @endif
                         <x-mini-button rounded info icon="eye"
                             wire:click="openViewModal({{ $contact->id }})"
                         />
