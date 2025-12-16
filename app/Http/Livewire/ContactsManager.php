@@ -3,6 +3,7 @@
 namespace App\Http\Livewire;
 
 use App\Models\Contact;
+use App\Services\ContactDisplayService;
 use App\Services\ContactService;
 use Illuminate\Support\Collection;
 use Livewire\Component;
@@ -56,7 +57,7 @@ class ContactsManager extends Component
 
     public array $mergedListDisplays = [];
 
-    public function openViewModal(int $id): void
+    public function openViewModal(int $id, ContactDisplayService $displayService): void
     {
         $contact = Contact::find($id);
 
@@ -67,7 +68,7 @@ class ContactsManager extends Component
         $this->loadDescendants($contact);
 
         $this->viewingContact = $contact;
-        $this->viewingMergedDisplay = $this->buildMergedDisplay($contact);
+        $this->viewingMergedDisplay = $displayService->buildMergedDisplay($contact);
         $this->viewModalOpen = true;
     }
 
@@ -81,24 +82,43 @@ class ContactsManager extends Component
         $this->resetPage();
     }
 
-    public function render()
+    public function render(ContactDisplayService $displayService)
     {
         $query = Contact::with('fields')
             ->whereNull('master_id')
             ->when($this->search, function ($query) {
                 $term = "%{$this->search}%";
-                $query->where(function ($q) use ($term) {
+                
+                // Closure to check a single contact node for matches (attributes or custom fields)
+                $checkNode = function ($q) use ($term) {
                     $q->where('name', 'like', $term)
                         ->orWhere('email', 'like', $term)
                         ->orWhere('phone', 'like', $term)
-                        ->orWhereHas('fields', function ($q2) use ($term) {
-                            $q2->where(function ($q3) use ($term) {
-                                $q3
-                                    ->where('field_value', 'like', $term)
+                        ->orWhereHas('fields', function ($f) use ($term) {
+                            $f->where(function ($fv) use ($term) {
+                                $fv->where('field_value', 'like', $term)
                                     ->orWhere('field_name', 'like', $term);
-                            })
-                                ->where('is_searchable', true);
+                            })->where('is_searchable', true);
                         });
+                };
+
+                // Apply search to the root contact, OR recursively to its descendants
+                $query->where(function ($root) use ($checkNode) {
+                    $checkNode($root);
+
+                    // Check descendants up to 3 levels deep using nested orWhereHas
+                    // Level 1
+                    $root->orWhereHas('secondaryContacts', function ($l1) use ($checkNode) {
+                        $l1->where(function ($node) use ($checkNode) { $checkNode($node); })
+                           // Level 2
+                           ->orWhereHas('secondaryContacts', function ($l2) use ($checkNode) {
+                                $l2->where(function ($node) use ($checkNode) { $checkNode($node); })
+                                   // Level 3
+                                   ->orWhereHas('secondaryContacts', function ($l3) use ($checkNode) {
+                                        $checkNode($l3);
+                                   });
+                           });
+                    });
                 });
             })
             ->when(! empty($this->selectedGenders), function ($query) {
@@ -112,7 +132,7 @@ class ContactsManager extends Component
         $this->mergedListDisplays = [];
         foreach ($contacts as $contact) {
             $this->loadDescendants($contact);
-            $this->mergedListDisplays[$contact->id] = $this->buildMergedDisplay($contact);
+            $this->mergedListDisplays[$contact->id] = $displayService->buildMergedDisplay($contact);
         }
 
         // Determine which contacts are already merged (either as master or secondary)
@@ -179,7 +199,7 @@ class ContactsManager extends Component
         $this->mergePreview = [];
     }
 
-    public function prepareMergePreview(): void
+    public function prepareMergePreview(ContactDisplayService $displayService): void
     {
         try {
             $this->validateMergeSelection();
@@ -199,7 +219,7 @@ class ContactsManager extends Component
         $this->loadDescendants($master);
         $this->loadDescendants($secondary);
 
-        $combined = $this->buildMergedDisplay($master, $secondary);
+        $combined = $displayService->buildMergedDisplay($master, $secondary);
 
         $this->mergePreview = [
             'master' => $master->only(['id', 'name', 'email', 'phone']),
@@ -334,198 +354,5 @@ class ContactsManager extends Component
 
         return false;
     }
-
-    /**
-     * Build merged display payload for modal rendering without persisting any data changes.
-     */
-    private function buildMergedDisplay(Contact $master, ?Contact $secondary = null): array
-    {
-        $contacts = $this->flattenHierarchy($master);
-
-        if ($secondary && ! $contacts->contains(fn ($item) => $item->id === $secondary->id)) {
-            $contacts->push($secondary);
-        }
-
-        $names = $contacts->map(function (Contact $contact) {
-            return $contact->name;
-        })->unique()->values();
-
-        $emails = $this->buildUniqueEmailsCollection($contacts);
-
-        $phones = $this->buildUniquePhonesCollection($contacts);
-
-        $customFields = $this->buildUniqueCustomFields($contacts);
-
-        return [
-            'names' => $names->toArray(),
-            'emails' => $emails->toArray(),
-            'phones' => $phones->toArray(),
-            'custom_fields' => array_values($customFields),
-            'secondary_tree' => $this->buildSecondaryTree($master),
-        ];
-    }
-
-    private function flattenHierarchy(Contact $contact): Collection
-    {
-        $collection = new Collection([$contact]);
-
-        $contact->loadMissing('secondaryContacts');
-
-        foreach ($contact->secondaryContacts as $child) {
-            $collection = $collection->merge($this->flattenHierarchy($child));
-        }
-
-        return $collection;
-    }
-
-    private function buildSecondaryTree(Contact $contact): array
-    {
-        $contact->loadMissing('fields', 'secondaryContacts');
-
-        return $contact->secondaryContacts->map(function (Contact $child) {
-            return [
-                'id' => $child->id,
-                'name' => $child->name,
-                'email' => $child->email,
-                'phone' => $child->phone,
-                'gender' => $child->gender,
-                'fields' => $child->fields->map(function ($field) {
-                    return [
-                        'name' => $field->field_name,
-                        'value' => $field->field_value,
-                        'is_searchable' => (bool) $field->is_searchable,
-                    ];
-                })->toArray(),
-                'children' => $this->buildSecondaryTree($child),
-            ];
-        })->toArray();
-    }
-
-    /**
-     * Build a unique collection of email records across a hierarchy of contacts.
-     *
-     * Two email entries are considered the same when their trimmed, lower‑cased values match.
-     */
-    private function buildUniqueEmailsCollection(Collection $contacts): Collection
-    {
-        $seen = [];
-
-        return $contacts->reduce(function (Collection $carry, Contact $contact) use (&$seen) {
-            $raw = (string) $contact->email;
-
-            if ($raw === '') {
-                return $carry;
-            }
-
-            $normalized = mb_strtolower(trim($raw));
-
-            if (isset($seen[$normalized])) {
-                return $carry;
-            }
-
-            $seen[$normalized] = true;
-
-            $carry->push([
-                'value' => $raw,
-                'source' => $contact->name,
-                'contact_id' => $contact->id,
-            ]);
-
-            return $carry;
-        }, new Collection)->values();
-    }
-
-    /**
-     * Build a unique collection of phone records across a hierarchy of contacts.
-     *
-     * Two phone entries are considered the same when their normalized digits (plus optional leading +)
-     * match, so minor formatting differences (spaces, dashes, brackets) do not create duplicates.
-     */
-    private function buildUniquePhonesCollection(Collection $contacts): Collection
-    {
-        $seen = [];
-
-        return $contacts->reduce(function (Collection $carry, Contact $contact) use (&$seen) {
-            $raw = (string) $contact->phone;
-
-            if ($raw === '') {
-                return $carry;
-            }
-
-            $normalized = preg_replace('/[^\d+]/', '', $raw ?? '');
-
-            if ($normalized === '') {
-                return $carry;
-            }
-
-            if (isset($seen[$normalized])) {
-                return $carry;
-            }
-
-            $seen[$normalized] = true;
-
-            $carry->push([
-                'value' => $raw,
-                'source' => $contact->name,
-                'contact_id' => $contact->id,
-            ]);
-
-            return $carry;
-        }, new Collection)->values();
-    }
-
-    /**
-     * Build a unique array of custom fields keyed by field name with de‑duplicated values.
-     *
-     * - Field names are grouped by their trimmed value.
-     * - Values are considered the same when their trimmed, lower‑cased strings match.
-     */
-    private function buildUniqueCustomFields(Collection $contacts): array
-    {
-        $customFields = [];
-        $seenPerField = [];
-
-        $contacts->each(function (Contact $contact) use (&$customFields, &$seenPerField) {
-            $contact->loadMissing('fields');
-
-            foreach ($contact->fields as $field) {
-                $fieldName = trim((string) $field->field_name);
-
-                if ($fieldName === '') {
-                    continue;
-                }
-
-                if (! isset($customFields[$fieldName])) {
-                    $customFields[$fieldName] = [
-                        'field_name' => $fieldName,
-                        'values' => [],
-                    ];
-
-                    $seenPerField[$fieldName] = [];
-                }
-
-                $rawValue = (string) $field->field_value;
-                $normalizedValue = mb_strtolower(trim($rawValue));
-
-                if ($normalizedValue === '') {
-                    continue;
-                }
-
-                if (isset($seenPerField[$fieldName][$normalizedValue])) {
-                    continue;
-                }
-
-                $seenPerField[$fieldName][$normalizedValue] = true;
-
-                $customFields[$fieldName]['values'][] = [
-                    'value' => $rawValue,
-                    'source' => $contact->name,
-                    'contact_id' => $contact->id,
-                    'is_searchable' => (bool) $field->is_searchable,
-                ];
-            }
-        });
-
-        return array_values($customFields);
-    }
 }
+

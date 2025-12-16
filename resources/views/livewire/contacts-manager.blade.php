@@ -4,7 +4,7 @@
     @endphp
     <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div class="flex w-full max-w-md items-center gap-3">
-            <x-input icon="magnifying-glass" placeholder="Search in name, email, phone, custom fields" wire:model.live.debounce.400ms="search" class="w-full" />
+            <x-input icon="magnifying-glass" placeholder="Search in name, email, phone, custom fields (including merged)" wire:model.live.debounce.400ms="search" class="w-full" />
         </div>
 
         
@@ -272,24 +272,9 @@
                 @endif
 
                 @if(!empty($viewingMergedDisplay['secondary_tree']))
-                    @php
-                        $renderTree = function(array $nodes) use (&$renderTree) {
-                            return collect($nodes)->map(function ($node) use ($renderTree) {
-                                return '
-                                    <div class="rounded-lg border border-neutral-200 dark:border-neutral-700 p-3 space-y-2">
-                                        <div class="text-sm font-semibold text-neutral-900 dark:text-neutral-100">'.e($node['name']).'</div>
-                                        <div class="text-sm text-neutral-700 dark:text-neutral-300">'.e($node['email']).'</div>
-                                        <div class="text-sm text-neutral-700 dark:text-neutral-300">'.e($node['phone']).'</div>
-                                        '.(!empty($node['fields']) ? '<div class="text-xs text-neutral-600 dark:text-neutral-400">Custom: '.collect($node['fields'])->map(fn($f) => e($f['name']).': '.e($f['value']))->implode(', ').'</div>' : '').'
-                                        '.(!empty($node['children']) ? '<div class="mt-2 space-y-2">'.$renderTree($node['children']).'</div>' : '').'
-                                    </div>
-                                ';
-                            })->implode('');
-                        };
-                    @endphp
                     <div class="border-t border-gray-200 dark:border-gray-700 pt-4 space-y-3">
                         <h4 class="text-md font-medium text-gray-900 dark:text-gray-100">Secondary Contacts</h4>
-                        {!! $renderTree($viewingMergedDisplay['secondary_tree']) !!}
+                        <x-contact-tree :nodes="$viewingMergedDisplay['secondary_tree']" />
                     </div>
                 @endif
             </div>
