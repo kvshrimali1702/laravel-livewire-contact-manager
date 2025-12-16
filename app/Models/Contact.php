@@ -2,10 +2,10 @@
 
 namespace App\Models;
 
-
 use App\Enums\GenderOptions;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Contact extends Model
@@ -24,6 +24,7 @@ class Contact extends Model
         'gender',
         'profile_image',
         'additional_file',
+        'master_id',
     ];
 
     /**
@@ -42,5 +43,21 @@ class Contact extends Model
     public function fields(): HasMany
     {
         return $this->hasMany(ContactCustomField::class);
+    }
+
+    /**
+     * Secondary contacts that belong to this master contact.
+     */
+    public function secondaryContacts(): HasMany
+    {
+        return $this->hasMany(self::class, 'master_id');
+    }
+
+    /**
+     * Parent (master) contact for a secondary contact.
+     */
+    public function master(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'master_id');
     }
 }

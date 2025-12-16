@@ -1,5 +1,5 @@
 <div>
-    <x-button label="Add Contact" primary wire:click="openModal" />
+    <x-button label="Add Contact" icon="plus" primary wire:click="openModal" />
 
     <x-modal-card title="Add New Contact" wire:model="modalOpen">
         <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">

@@ -3,7 +3,7 @@
 namespace App\Services;
 
 use App\Models\Contact;
-use App\Models\ContactCustomField;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
@@ -27,14 +27,14 @@ class ContactService
                 'phone',
                 'gender',
                 'profile_image',
-                'additional_file'
+                'additional_file',
             ])->toArray();
 
             $contact = Contact::create($contactData);
 
             if (isset($data['custom_fields']) && is_array($data['custom_fields'])) {
                 foreach ($data['custom_fields'] as $field) {
-                    if (!empty($field['key']) && !empty($field['value'])) {
+                    if (! empty($field['key']) && ! empty($field['value'])) {
                         $contact->fields()->create([
                             'field_name' => $field['key'],
                             'field_value' => $field['value'],
@@ -77,14 +77,14 @@ class ContactService
                 'phone',
                 'gender',
                 'profile_image',
-                'additional_file'
+                'additional_file',
             ])->toArray());
 
             // Sync Custom Fields
             if (isset($data['custom_fields']) && is_array($data['custom_fields'])) {
                 $processedIds = [];
                 foreach ($data['custom_fields'] as $field) {
-                    if (!empty($field['key']) && !empty($field['value'])) {
+                    if (! empty($field['key']) && ! empty($field['value'])) {
                         if (isset($field['id']) && $field['id']) {
                             // Update existing
                             $customField = $contact->fields()->find($field['id']);
@@ -124,5 +124,57 @@ class ContactService
             Storage::disk('public')->delete($contact->additional_file);
             $contact->update(['additional_file' => null]);
         }
+    }
+
+    /**
+     * Mark a contact as secondary of the provided master contact.
+     *
+     * Data is intentionally not merged; we only track linkage.
+     */
+    public function mergeContacts(Contact $master, Contact $secondary): Contact
+    {
+        return DB::transaction(function () use ($master, $secondary) {
+            if ($master->is($secondary)) {
+                throw new \InvalidArgumentException('Master and secondary contacts must differ.');
+            }
+
+            // Disallow re-merging contacts that are already in a merge relationship.
+            $master->loadMissing('secondaryContacts');
+            $secondary->loadMissing('secondaryContacts');
+
+            if ($master->master_id !== null || $secondary->master_id !== null || $master->secondaryContacts()->exists() || $secondary->secondaryContacts()->exists()) {
+                throw new \InvalidArgumentException('One or both contacts are already merged and cannot be merged again.');
+            }
+
+            if ($this->isDescendant($master, $secondary)) {
+                throw new \InvalidArgumentException('Cannot make a master a child of its descendant.');
+            }
+
+            $secondary->master_id = $master->id;
+            $secondary->save();
+
+            return $secondary;
+        });
+    }
+
+    /**
+     * Check if $target exists within $candidate's descendant tree.
+     */
+    private function isDescendant(Contact $candidate, Contact $target): bool
+    {
+        $toVisit = new Collection([$candidate]);
+
+        while ($toVisit->isNotEmpty()) {
+            $current = $toVisit->shift();
+            $current->loadMissing('secondaryContacts');
+
+            if ($current->secondaryContacts->contains('id', $target->id)) {
+                return true;
+            }
+
+            $toVisit = $toVisit->merge($current->secondaryContacts);
+        }
+
+        return false;
     }
 }

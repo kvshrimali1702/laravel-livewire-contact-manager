@@ -52,21 +52,23 @@
                     @forelse($contacts as $contact)
                                 <tr>
                                     <td class="whitespace-nowrap px-4 py-3 text-sm text-neutral-900 dark:text-neutral-100">
-                                        {{ $contact->name }}
+                                        {{ collect($mergedListDisplays[$contact->id]['names'] ?? [$contact->name])->implode(' / ') }}
                                     </td>
-                                    <td class="whitespace-nowrap px-4 py-3 text-sm text-neutral-600 dark:text-neutral-300">
-                                        {{ $contact->email }}
+                                    <td class="whitespace-normal px-4 py-3 text-sm text-neutral-600 dark:text-neutral-300">
+                                        {{ collect($mergedListDisplays[$contact->id]['emails'] ?? [])->pluck('value')->implode(', ') }}
                                     </td>
-                                    <td class="whitespace-nowrap px-4 py-3 text-sm text-neutral-600 dark:text-neutral-300">
-                                        {{ $contact->phone }}
+                                    <td class="whitespace-normal px-4 py-3 text-sm text-neutral-600 dark:text-neutral-300">
+                                        {{ collect($mergedListDisplays[$contact->id]['phones'] ?? [])->pluck('value')->implode(', ') }}
                                     </td>
                                     <td class="whitespace-nowrap px-4 py-3 text-sm text-neutral-600 dark:text-neutral-300">
                                         {{ $contact->gender instanceof GenderOptions ? $contact->gender->label() : '' }}
                                     </td>
 
                                     <td class="whitespace-normal px-4 py-3 text-sm text-neutral-600 dark:text-neutral-300">
-                                        {{ $contact->fields->map(function ($f) {
-                    return $f->field_name . ': ' . $f->field_value; })->implode(', ') }}
+                                        {{ collect($mergedListDisplays[$contact->id]['custom_fields'] ?? [])->map(function ($field) {
+                                            $values = collect($field['values'])->pluck('value')->unique()->implode(', ');
+                                            return $field['field_name'] . ': ' . $values;
+                                        })->implode(', ') }}
                                     </td>
 
                                     <td class="whitespace-nowrap px-4 py-3 text-sm text-neutral-500 dark:text-neutral-400">
@@ -101,9 +103,15 @@
             <div class="rounded-lg border border-neutral-200 bg-white p-4 shadow-sm dark:border-neutral-800 dark:bg-neutral-950">
                 <div class="flex items-start justify-between gap-3">
                     <div>
-                        <div class="text-sm font-semibold text-neutral-900 dark:text-neutral-100">{{ $contact->name }}</div>
-                        <div class="text-sm text-neutral-600 dark:text-neutral-300">{{ $contact->email }}</div>
-                        <div class="text-sm text-neutral-600 dark:text-neutral-300">{{ $contact->phone }}</div>
+                        <div class="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
+                            {{ collect($mergedListDisplays[$contact->id]['names'] ?? [$contact->name])->implode(' / ') }}
+                        </div>
+                        <div class="text-sm text-neutral-600 dark:text-neutral-300">
+                            {{ collect($mergedListDisplays[$contact->id]['emails'] ?? [])->pluck('value')->implode(', ') }}
+                        </div>
+                        <div class="text-sm text-neutral-600 dark:text-neutral-300">
+                            {{ collect($mergedListDisplays[$contact->id]['phones'] ?? [])->pluck('value')->implode(', ') }}
+                        </div>
                         <div class="text-sm text-neutral-600 dark:text-neutral-300">
                             {{ $contact->gender instanceof GenderOptions ? $contact->gender->label() : '' }}
                         </div>
@@ -121,10 +129,13 @@
                     </div>
                 </div>
 
-                @if($contact->fields->isNotEmpty())
+                @if(!empty($mergedListDisplays[$contact->id]['custom_fields']))
                     <div class="mt-3 text-sm text-neutral-600 dark:text-neutral-300">
                         <span class="font-medium text-neutral-700 dark:text-neutral-200">Custom Fields:</span>
-                        {{ $contact->fields->map(function ($f) { return $f->field_name . ': ' . $f->field_value; })->implode(', ') }}
+                        {{ collect($mergedListDisplays[$contact->id]['custom_fields'])->map(function ($field) {
+                            $values = collect($field['values'])->pluck('value')->unique()->implode(', ');
+                            return $field['field_name'] . ': ' . $values;
+                        })->implode(', ') }}
                     </div>
                 @endif
 
@@ -200,22 +211,73 @@
                 </div>
 
                 {{-- Custom Fields --}}
-                @if($viewingContact->fields->isNotEmpty())
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div class="border-t border-gray-200 dark:border-gray-700 pt-4">
-                        <h4 class="text-md font-medium text-gray-900 dark:text-gray-100 mb-2">Custom Fields</h4>
+                        <h4 class="text-md font-medium text-gray-900 dark:text-gray-100 mb-2">Emails</h4>
+                        <div class="space-y-2">
+                            @foreach($viewingMergedDisplay['emails'] ?? [] as $email)
+                                <div class="flex items-center gap-2 text-sm text-gray-900 dark:text-gray-100">
+                                    <span>{{ $email['value'] }}</span>
+                                    <x-badge sm outline label="from {{ $email['source'] }}" />
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+
+                    <div class="border-t border-gray-200 dark:border-gray-700 pt-4">
+                        <h4 class="text-md font-medium text-gray-900 dark:text-gray-100 mb-2">Phone Numbers</h4>
+                        <div class="space-y-2">
+                            @foreach($viewingMergedDisplay['phones'] ?? [] as $phone)
+                                <div class="flex items-center gap-2 text-sm text-gray-900 dark:text-gray-100">
+                                    <span>{{ $phone['value'] }}</span>
+                                    <x-badge sm outline label="from {{ $phone['source'] }}" />
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                </div>
+
+                @if(!empty($viewingMergedDisplay['custom_fields']))
+                    <div class="border-t border-gray-200 dark:border-gray-700 pt-4">
+                        <h4 class="text-md font-medium text-gray-900 dark:text-gray-100 mb-2">Merged Custom Fields</h4>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            @foreach($viewingContact->fields as $field)
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-400">{{ $field->field_name }}</label>
-                                        <div class="mt-1 text-sm text-gray-900 dark:text-gray-100 flex items-center gap-2">
-                                            {{ $field->field_value }}
-                                            @if($field->is_searchable)
+                            @foreach($viewingMergedDisplay['custom_fields'] as $field)
+                                <div class="space-y-1">
+                                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-400">{{ $field['field_name'] }}</label>
+                                    @foreach($field['values'] as $value)
+                                        <div class="flex items-center gap-2 text-sm text-gray-900 dark:text-gray-100">
+                                            <span>{{ $value['value'] }}</span>
+                                            <x-badge sm outline label="from {{ $value['source'] }}" />
+                                            @if($value['is_searchable'])
                                                 <x-badge sm outline positive label="Searchable" />
                                             @endif
                                         </div>
-                                    </div>
+                                    @endforeach
+                                </div>
                             @endforeach
                         </div>
+                    </div>
+                @endif
+
+                @if(!empty($viewingMergedDisplay['secondary_tree']))
+                    @php
+                        $renderTree = function(array $nodes) use (&$renderTree) {
+                            return collect($nodes)->map(function ($node) use ($renderTree) {
+                                return '
+                                    <div class="rounded-lg border border-neutral-200 dark:border-neutral-700 p-3 space-y-2">
+                                        <div class="text-sm font-semibold text-neutral-900 dark:text-neutral-100">'.e($node['name']).'</div>
+                                        <div class="text-sm text-neutral-700 dark:text-neutral-300">'.e($node['email']).'</div>
+                                        <div class="text-sm text-neutral-700 dark:text-neutral-300">'.e($node['phone']).'</div>
+                                        '.(!empty($node['fields']) ? '<div class="text-xs text-neutral-600 dark:text-neutral-400">Custom: '.collect($node['fields'])->map(fn($f) => e($f['name']).': '.e($f['value']))->implode(', ').'</div>' : '').'
+                                        '.(!empty($node['children']) ? '<div class="mt-2 space-y-2">'.$renderTree($node['children']).'</div>' : '').'
+                                    </div>
+                                ';
+                            })->implode('');
+                        };
+                    @endphp
+                    <div class="border-t border-gray-200 dark:border-gray-700 pt-4 space-y-3">
+                        <h4 class="text-md font-medium text-gray-900 dark:text-gray-100">Secondary Contacts</h4>
+                        {!! $renderTree($viewingMergedDisplay['secondary_tree']) !!}
                     </div>
                 @endif
             </div>
@@ -227,4 +289,131 @@
             </div>
         </x-slot>
     </x-modal-card>
+
+    {{-- Merge Contacts Modal --}}
+    @if($mergeModalOpen)
+        <x-modal-card title="Merge Contacts" wire:model="mergeModalOpen">
+            <div class="space-y-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <x-select
+                        label="Master Contact"
+                        placeholder="Select master contact"
+                        wire:model.live="mergeMasterId"
+                    >
+                        @foreach($allContacts as $option)
+                            <x-select.option
+                                label="{{ $option->name }}{{ in_array($option->id, $mergeLockedIds, true) ? ' (merged)' : '' }}"
+                                value="{{ $option->id }}"
+                            />
+                        @endforeach
+                    </x-select>
+
+                    <x-select
+                        label="Secondary Contact"
+                        placeholder="Select secondary contact"
+                        wire:model.live="mergeSecondaryId"
+                    >
+                        @foreach($allContacts as $option)
+                            <x-select.option
+                                label="{{ $option->name }}{{ in_array($option->id, $mergeLockedIds, true) ? ' (merged)' : '' }}"
+                                value="{{ $option->id }}"
+                            />
+                        @endforeach
+                    </x-select>
+                </div>
+
+                @if($mergePreview)
+                    <div class="space-y-3">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div class="rounded-lg border border-neutral-200 dark:border-neutral-700 p-3">
+                                <h4 class="text-sm font-semibold text-neutral-900 dark:text-neutral-100 mb-1">Master</h4>
+                                <div class="text-sm text-neutral-700 dark:text-neutral-300">{{ $mergePreview['master']['name'] }}</div>
+                                <div class="text-xs text-neutral-500 dark:text-neutral-400">{{ $mergePreview['master']['email'] }}</div>
+                                <div class="text-xs text-neutral-500 dark:text-neutral-400">{{ $mergePreview['master']['phone'] }}</div>
+                            </div>
+
+                            <div class="rounded-lg border border-neutral-200 dark:border-neutral-700 p-3">
+                                <h4 class="text-sm font-semibold text-neutral-900 dark:text-neutral-100 mb-1">Secondary</h4>
+                                <div class="text-sm text-neutral-700 dark:text-neutral-300">{{ $mergePreview['secondary']['name'] }}</div>
+                                <div class="text-xs text-neutral-500 dark:text-neutral-400">{{ $mergePreview['secondary']['email'] }}</div>
+                                <div class="text-xs text-neutral-500 dark:text-neutral-400">{{ $mergePreview['secondary']['phone'] }}</div>
+                            </div>
+                        </div>
+
+                        <div class="rounded-lg border border-dashed border-neutral-300 dark:border-neutral-700 p-3 space-y-2">
+                            <h4 class="text-sm font-semibold text-neutral-900 dark:text-neutral-100">Preview (display only)</h4>
+                            <div class="flex flex-wrap gap-2 text-sm text-neutral-700 dark:text-neutral-300">
+                                @foreach($mergePreview['merged']['emails'] as $email)
+                                    <span class="inline-flex items-center gap-1 rounded-full bg-neutral-100 dark:bg-neutral-800 px-2 py-1">
+                                        {{ $email['value'] }}
+                                        <x-badge sm outline label="{{ $email['source'] }}" />
+                                    </span>
+                                @endforeach
+                            </div>
+                            <div class="flex flex-wrap gap-2 text-sm text-neutral-700 dark:text-neutral-300">
+                                @foreach($mergePreview['merged']['phones'] as $phone)
+                                    <span class="inline-flex items-center gap-1 rounded-full bg-neutral-100 dark:bg-neutral-800 px-2 py-1">
+                                        {{ $phone['value'] }}
+                                        <x-badge sm outline label="{{ $phone['source'] }}" />
+                                    </span>
+                                @endforeach
+                            </div>
+                            <div class="space-y-1 text-sm text-neutral-700 dark:text-neutral-300">
+                                @foreach($mergePreview['merged']['custom_fields'] as $field)
+                                    <div class="flex flex-wrap gap-2 items-center">
+                                        <span class="font-semibold">{{ $field['field_name'] }}:</span>
+                                        @foreach($field['values'] as $value)
+                                            <span class="inline-flex items-center gap-1 rounded-full bg-neutral-100 dark:bg-neutral-800 px-2 py-1">
+                                                {{ $value['value'] }}
+                                                <x-badge sm outline label="{{ $value['source'] }}" />
+                                            </span>
+                                        @endforeach
+                                    </div>
+                                @endforeach
+                            </div>
+                        </div>
+                    </div>
+                @else
+                    <div class="rounded-md border border-dashed border-neutral-300 dark:border-neutral-700 p-3 text-sm text-neutral-600 dark:text-neutral-300">
+                        Select a master and secondary contact, then click "Preview" to see the combined view before confirming.
+                    </div>
+                @endif
+            </div>
+
+            <x-slot name="footer">
+                <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 w-full">
+                    <x-button flat label="Cancel" x-on:click="close" />
+                    <div class="flex items-center gap-2">
+                        <x-button
+                            outline
+                            label="Preview"
+                            wire:click="prepareMergePreview"
+                            :disabled="!$mergeMasterId || !$mergeSecondaryId"
+                        />
+
+                        @if($mergePreview)
+                            {{-- Active, clickable confirm with normal tooltip --}}
+                            <flux:button
+                                variant="primary"
+                                wire:click="confirmMerge"
+                                tooltip="Confirm and link the selected contacts."
+                            >
+                                Confirm Merge
+                            </flux:button>
+                        @else
+                            {{-- Visually disabled, non-clickable, but still hoverable for tooltip --}}
+                            <flux:button
+                                variant="primary"
+                                type="button"
+                                class="opacity-60 cursor-not-allowed"
+                                tooltip="Select a master and secondary contact, then click Preview to enable this action."
+                            >
+                                Confirm Merge
+                            </flux:button>
+                        @endif
+                    </div>
+                </div>
+            </x-slot>
+        </x-modal-card>
+    @endif
 </div>
