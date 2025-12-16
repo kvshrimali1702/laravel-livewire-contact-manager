@@ -3,28 +3,33 @@
         use App\Enums\GenderOptions;
     @endphp
     <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div class="flex w-full max-w-md items-center gap-3">
-            <x-input icon="magnifying-glass" placeholder="Search in name, email, phone, custom fields (including merged)" wire:model.live.debounce.400ms="search" class="w-full" />
-        </div>
-
-        
-        <div class="flex flex-wrap items-center gap-3">
-            @foreach(GenderOptions::cases() as $gender)
-                <x-checkbox 
-                    id="gender-{{ $gender->value }}"
-                    label="{{ $gender->label() }}" 
-                    value="{{ $gender->value }}"
-                    wire:model.live="selectedGenders" 
-                />
-            @endforeach
-        </div>
-
-        <div class="flex items-center gap-2 sm:self-end">
+        <div class="flex items-center gap-2">
             <x-native-select
                 label="Per page"
                 wire:model.live="perPage"
                 :options="['5' => 5, '10' => 10, '25' => 25, '50' => 50]"
             />
+        </div>
+
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-center">
+            @if($search || !empty($selectedGenders))
+                <x-button flat negative label="Clear Filters" icon="x-mark" wire:click="clearFilters" />
+            @endif
+
+            <div class="w-full sm:w-[500px]">
+                <x-input icon="magnifying-glass" placeholder="Search in name, email, phone, custom fields (including merged)" wire:model.live.debounce.400ms="search" class="w-full" />
+            </div>
+
+            <div class="flex flex-wrap items-center gap-3">
+                @foreach(GenderOptions::cases() as $gender)
+                    <x-checkbox 
+                        id="gender-{{ $gender->value }}"
+                        label="{{ $gender->label() }}" 
+                        value="{{ $gender->value }}"
+                        wire:model.live="selectedGenders" 
+                    />
+                @endforeach
+            </div>
         </div>
     </div>
 

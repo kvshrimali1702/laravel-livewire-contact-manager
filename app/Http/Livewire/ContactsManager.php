@@ -82,6 +82,12 @@ class ContactsManager extends Component
         $this->resetPage();
     }
 
+    public function clearFilters()
+    {
+        $this->reset(['search', 'selectedGenders']);
+        $this->resetPage();
+    }
+
     public function render(ContactDisplayService $displayService)
     {
         $query = Contact::with('fields')
